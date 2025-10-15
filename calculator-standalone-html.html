@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chair-Fill System™ ROI Calculator</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState } = React;
+
+        // Lucide Icons as SVG components
+        const Calculator = () => (
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="4" y="2" width="16" height="20" rx="2"/>
+                <line x1="8" y1="6" x2="16" y2="6"/>
+                <line x1="16" y1="10" x2="16" y2="10"/>
+                <line x1="12" y1="10" x2="12" y2="10"/>
+                <line x1="8" y1="10" x2="8" y2="10"/>
+                <line x1="8" y1="14" x2="16" y2="14"/>
+                <line x1="8" y1="18" x2="12" y2="18"/>
+                <line x1="16" y1="18" x2="16" y2="18"/>
+            </svg>
+        );
+
+        const TrendingUp = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                <polyline points="17 6 23 6 23 12"/>
+            </svg>
+        );
+
+        const Share2 = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="18" cy="5" r="3"/>
+                <circle cx="6" cy="12" r="3"/>
+                <circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+        );
+
+        const CheckCircle = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+        );
+
+        const AlertTriangle = () => (
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        );
+
+        const ChevronDown = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6 9 12 15 18 9"/>
+            </svg>
+        );
+
+        const ChevronUp = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="18 15 12 9 6 15"/>
+            </svg>
+        );
+
+        function ROICalculator() {
+            const [inputs, setInputs] = useState({
+                totalPatients: 1200,
+                callsPerDay: 12,
+                newPatientsPerMonth: 20,
+                avgAppointmentValue: 400,
+                scheduleCapacity: 70
+            });
+            
+            const [showMonthly, setShowMonthly] = useState(false);
+
+            const ghostPatients = Math.round(inputs.totalPatients * 0.20);
+            const callsPerMonth = Math.round(inputs.callsPerDay * 22);
+
+            const handleChange = (field, value) => {
+                setInputs(prev => ({
+                    ...prev,
+                    [field]: parseInt(value) || 0
+                }));
+            };
+
+            const getQualification = () => {
+                const issues = [];
+                
+                if (inputs.totalPatients < 800) issues.push('Need 800+ patients');
+                if (callsPerMonth < 150) issues.push('Need 7+ calls/day (150+/month)');
+                if (inputs.scheduleCapacity > 90) issues.push('Over 90% capacity');
+                
+                if (issues.length === 0) {
+                    return { status: 'great', label: '✓ Perfect Fit', color: 'green', message: 'Excellent opportunity for growth' };
+                } else if (issues.length === 1) {
+                    return { status: 'borderline', label: '⚠ Borderline Fit', color: 'yellow', message: issues[0] };
+                } else {
+                    return { status: 'not-ready', label: '⚠ Not Ready', color: 'red', message: issues.join(', ') };
+                }
+            };
+
+            const qualification = getQualification();
+
+            const calculations = {
+                get ghostQuarterly() {
+                    const perCampaign = ghostPatients * 0.07 * 0.60 * inputs.avgAppointmentValue;
+                    return perCampaign * 4;
+                },
+                
+                get ghostMonthlyChurn() {
+                    const atRisk = inputs.totalPatients * 0.08;
+                    const monthly = atRisk * 0.05 * 0.60 * 300;
+                    return monthly * 12;
+                },
+                
+                get ghostTotal() {
+                    return this.ghostQuarterly + this.ghostMonthlyChurn;
+                },
+                
+                get retentionRecovery() {
+                    const twoYearValue = 1600;
+                    const improvement = 0.08;
+                    return inputs.newPatientsPerMonth * improvement * twoYearValue * 12;
+                },
+                
+                get referralRecovery() {
+                    return 4 * 500 * 12;
+                },
+                
+                get callRecovery() {
+                    const missedCalls = callsPerMonth * 0.38;
+                    const captured = missedCalls * 0.85;
+                    const appointments = captured * 0.30;
+                    return appointments * inputs.avgAppointmentValue * 12;
+                },
+                
+                get afterHoursRecovery() {
+                    const afterHoursCalls = callsPerMonth * 0.20 * 0.90;
+                    const appointments = afterHoursCalls * 0.30;
+                    return appointments * inputs.avgAppointmentValue * 12;
+                },
+                
+                get totalRecovery() {
+                    return this.ghostTotal + this.retentionRecovery + this.referralRecovery + 
+                        this.callRecovery + this.afterHoursRecovery;
+                },
+                
+                get month1() {
+                    const ghostCampaign = ghostPatients * 0.07 * 0.60 * inputs.avgAppointmentValue;
+                    const calls = (callsPerMonth * 0.38 * 0.85 * 0.30 * inputs.avgAppointmentValue);
+                    const afterHours = (callsPerMonth * 0.20 * 0.90 * 0.30 * inputs.avgAppointmentValue);
+                    return ghostCampaign + calls + afterHours;
+                },
+                
+                get month2to3() {
+                    const ghostFollowup = (ghostPatients * 0.03 * 0.60 * inputs.avgAppointmentValue);
+                    const calls = (callsPerMonth * 0.38 * 0.85 * 0.30 * inputs.avgAppointmentValue);
+                    const afterHours = (callsPerMonth * 0.20 * 0.90 * 0.30 * inputs.avgAppointmentValue);
+                    const retention = inputs.newPatientsPerMonth * 0.08 * 1600 / 12;
+                    const referrals = 4 * 500;
+                    return ghostFollowup + calls + afterHours + retention + referrals;
+                },
+                
+                get month4plus() {
+                    const ghostCampaign = ghostPatients * 0.07 * 0.60 * inputs.avgAppointmentValue;
+                    const calls = (callsPerMonth * 0.38 * 0.85 * 0.30 * inputs.avgAppointmentValue);
+                    const afterHours = (callsPerMonth * 0.20 * 0.90 * 0.30 * inputs.avgAppointmentValue);
+                    const retention = inputs.newPatientsPerMonth * 0.08 * 1600 / 12;
+                    const referrals = 4 * 500;
+                    return ghostCampaign + calls + afterHours + retention + referrals;
+                },
+                
+                annualInvestment: 28800,
+                monthlyInvestment: 2400,
+                
+                get netGain() {
+                    return this.totalRecovery - this.annualInvestment;
+                },
+                
+                get monthlyCashFlow() {
+                    return (this.totalRecovery / 12) - this.monthlyInvestment;
+                },
+                
+                get roi() {
+                    return ((this.totalRecovery / this.annualInvestment) * 100).toFixed(0);
+                },
+                
+                get roiMultiplier() {
+                    return (this.totalRecovery / this.annualInvestment).toFixed(1);
+                }
+            };
+
+            const formatCurrency = (num) => {
+                return new Intl.NumberFormat('en-NZ', {
+                    style: 'currency',
+                    currency: 'NZD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }).format(num);
+            };
+
+            const shareResults = () => {
+                alert('Save this HTML file and share it, or bookmark this page!');
+            };
+
+            const timelineData = [
+                { month: 'M1', value: calculations.month1, label: 'Month 1' },
+                { month: 'M2', value: calculations.month2to3, label: 'Month 2' },
+                { month: 'M3', value: calculations.month2to3, label: 'Month 3' },
+                { month: 'M4', value: calculations.month4plus, label: 'Month 4' },
+                { month: 'M5', value: calculations.month4plus, label: 'Month 5' },
+                { month: 'M6', value: calculations.month4plus, label: 'Month 6' },
+                { month: 'M7', value: calculations.month4plus, label: 'Month 7' },
+                { month: 'M8', value: calculations.month4plus, label: 'Month 8' },
+                { month: 'M9', value: calculations.month4plus, label: 'Month 9' },
+                { month: 'M10', value: calculations.month4plus, label: 'Month 10' },
+                { month: 'M11', value: calculations.month4plus, label: 'Month 11' },
+                { month: 'M12', value: calculations.month4plus, label: 'Month 12' }
+            ];
+
+            const maxValue = Math.max(...timelineData.map(d => d.value));
+
+            const qualificationBgColor = qualification.status === 'great' ? 'bg-green-50 border-green-300' :
+                qualification.status === 'borderline' ? 'bg-yellow-50 border-yellow-300' : 'bg-red-50 border-red-300';
+            
+            const qualificationTextColor = qualification.status === 'great' ? 'text-green-800' :
+                qualification.status === 'borderline' ? 'text-yellow-800' : 'text-red-800';
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 md:p-8">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="text-center mb-6">
+                            <div className="flex items-center justify-center mb-4">
+                                <div className="text-indigo-600 mr-3"><Calculator /></div>
+                                <h1 className="text-4xl font-bold text-gray-900">Chair-Fill System™</h1>
+                            </div>
+                            <p className="text-xl text-gray-600">ROI Calculator for NZ Dental Practices</p>
+                        </div>
+
+                        <div className={`max-w-3xl mx-auto mb-6 p-4 rounded-lg border-2 ${qualificationBgColor}`}>
+                            <div className="flex items-center justify-center">
+                                <span className={`font-bold text-lg ${qualificationTextColor}`}>
+                                    {qualification.label}
+                                </span>
+                                {qualification.status !== 'great' && (
+                                    <span className="ml-3 text-sm">
+                                        {qualification.message}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="grid lg:grid-cols-2 gap-6">
+                            <div className="bg-white rounded-lg shadow-lg p-6">
+                                <h2 className="text-2xl font-bold text-gray-800 mb-6">Practice Details</h2>
+                                
+                                <div className="space-y-5">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            Total Patients in System
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={inputs.totalPatients}
+                                            onChange={(e) => handleChange('totalPatients', e.target.value)}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none text-lg"
+                                        />
+                                        <p className="text-sm text-indigo-600 mt-1">
+                                            ≈ {ghostPatients} ghost patients (20% typically inactive 18+ months)
+                                        </p>
+                                        {inputs.totalPatients < 800 && (
+                                            <p className="text-sm text-red-600 mt-1">⚠️ Need 800+ for optimal results</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            Average Calls Per Day
+                                        </label>
+                                        <input
+                                            type="range"
+                                            min="3"
+                                            max="25"
+                                            step="1"
+                                            value={inputs.callsPerDay}
+                                            onChange={(e) => handleChange('callsPerDay', e.target.value)}
+                                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                        />
+                                        <div className="flex justify-between text-sm text-gray-600 mt-1">
+                                            <span>3/day</span>
+                                            <span className="font-bold text-indigo-600">{inputs.callsPerDay} calls/day</span>
+                                            <span>25/day</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 text-center mt-1">
+                                            = {callsPerMonth} calls/month (22 working days)
+                                        </p>
+                                        {callsPerMonth < 150 && (
+                                            <p className="text-sm text-yellow-600 mt-1">⚠️ Low call volume - recovery will be lower</p>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            New Patients Per Month
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={inputs.newPatientsPerMonth}
+                                            onChange={(e) => handleChange('newPatientsPerMonth', e.target.value)}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none text-lg"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            Average Appointment Value ($)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={inputs.avgAppointmentValue}
+                                            onChange={(e) => handleChange('avgAppointmentValue', e.target.value)}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none text-lg"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            Schedule Capacity (% typically full)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={inputs.scheduleCapacity}
+                                            onChange={(e) => handleChange('scheduleCapacity', e.target.value)}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none text-lg"
+                                        />
+                                        <div className="mt-2 text-sm text-gray-600">
+                                            {inputs.scheduleCapacity <= 60 && '✓ Lots of capacity for growth'}
+                                            {inputs.scheduleCapacity > 60 && inputs.scheduleCapacity <= 80 && '✓ Good capacity'}
+                                            {inputs.scheduleCapacity > 80 && inputs.scheduleCapacity <= 90 && '⚠️ Limited capacity'}
+                                            {inputs.scheduleCapacity > 90 && '⚠️ May need to expand capacity first'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="bg-white rounded-lg shadow-lg p-6">
+                                    <h3 className="text-xl font-bold text-gray-800 mb-4">📈 Monthly Recovery Timeline</h3>
+                                    <div className="space-y-2">
+                                        {timelineData.map((data, idx) => {
+                                            const heightPercent = (data.value / maxValue) * 100;
+                                            return (
+                                                <div key={idx} className="flex items-center gap-2">
+                                                    <span className="text-xs text-gray-600 w-8">{data.month}</span>
+                                                    <div className="flex-1 bg-gray-100 rounded-full h-6 relative overflow-hidden">
+                                                        <div
+                                                            className="bg-gradient-to-r from-indigo-500 to-indigo-600 h-full rounded-full transition-all duration-500 flex items-center justify-end pr-2"
+                                                            style={{ width: `${heightPercent}%` }}
+                                                        >
+                                                            {heightPercent > 30 && (
+                                                                <span className="text-xs text-white font-semibold">
+                                                                    {formatCurrency(data.value)}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    {heightPercent <= 30 && (
+                                                        <span className="text-xs text-gray-600 w-20 text-right">
+                                                            {formatCurrency(data.value)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="mt-4 p-3 bg-indigo-50 rounded-lg">
+                                        <p className="text-sm text-indigo-800">
+                                            <strong>Month 1:</strong> Call capture + First ghost campaign<br/>
+                                            <strong>Months 2-3:</strong> All engines building momentum<br/>
+                                            <strong>Month 4+:</strong> Full system running + quarterly campaigns
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-green-50 border-2 border-green-200 rounded-lg shadow-lg p-6">
+                                    <h3 className="text-xl font-bold text-green-800 mb-4">✅ Annual Summary</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-700">Ghost Patient Recovery:</span>
+                                            <span className="font-semibold text-green-700">{formatCurrency(calculations.ghostTotal)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-700">Call Capture:</span>
+                                            <span className="font-semibold text-green-700">{formatCurrency(calculations.callRecovery)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-700">After-Hours Calls:</span>
+                                            <span className="font-semibold text-green-700">{formatCurrency(calculations.afterHoursRecovery)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-700">New Patient Retention:</span>
+                                            <span className="font-semibold text-green-700">{formatCurrency(calculations.retentionRecovery)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-700">Referrals:</span>
+                                            <span className="font-semibold text-green-700">{formatCurrency(calculations.referralRecovery)}</span>
+                                        </div>
+                                        <div className="border-t-2 border-green-300 pt-3 mt-3">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-lg font-bold text-green-900">TOTAL RECOVERY:</span>
+                                                <span className="text-2xl font-bold text-green-900">{formatCurrency(calculations.totalRecovery)}</span>
+                                            </div>
+                                        </div>
+                                        <div className="border-t pt-3 mt-3">
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-700">Your Investment:</span>
+                                                <span className="font-semibold text-gray-900">-{formatCurrency(calculations.annualInvestment)}</span>
+                                            </div>
+                                        </div>
+                                        <div className="border-t-2 border-green-400 pt-3 mt-3 bg-green-100 -mx-3 -mb-3 px-3 pb-3 rounded-b">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-xl font-bold text-green-900">NET GAIN:</span>
+                                                <span className="text-3xl font-bold text-green-900">{formatCurrency(calculations.netGain)}</span>
+                                            </div>
+                                            <div className="text-center mt-2">
+                                                <span className="text-sm text-green-700">Monthly: +{formatCurrency(calculations.monthlyCashFlow)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-indigo-600 rounded-lg shadow-lg p-6 text-white">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className="flex items-center mb-2">
+                                                <div className="mr-2"><TrendingUp /></div>
+                                                <h3 className="text-xl font-bold">Return on Investment</h3>
+                                            </div>
+                                            <p className="text-indigo-100 text-sm">For every $1 invested, you get back:</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-5xl font-bold">{calculations.roi}%</div>
+                                            <div className="text-indigo-200 text-sm mt-1">{calculations.roiMultiplier}× return</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-lg shadow-lg p-6">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-4">💰 Your Investment</h3>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-700">Professional Package:</span>
+                                            <span className="text-xl font-bold text-gray-900">$2,400/month</span>
+                                        </div>
+                                        <div className="text-sm text-gray-600 mt-2">
+                                            <p>✓ All 4 engines included</p>
+                                            <p>✓ Monthly reporting & optimization</p>
+                                            <p>✓ 90-day qualified guarantee</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 text-center text-sm text-gray-600">
+                            <p className="font-semibold mb-2">90-Day Qualified Performance Guarantee</p>
+                            <p>We guarantee minimum 15 qualified leads/month from Ghost Patients + Call Capture.</p>
+                            <p className="mt-2">Recovery calculations based on industry data and real-world client results.</p>
+                            <p className="mt-1">Actual results vary by practice size, data quality, and follow-through.</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<ROICalculator />, document.getElementById('root'));
+    </script>
+</body>
+</html>
